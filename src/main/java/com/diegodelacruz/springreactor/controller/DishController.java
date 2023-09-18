@@ -3,9 +3,14 @@ package com.diegodelacruz.springreactor.controller;
 import com.diegodelacruz.springreactor.model.Dish;
 import com.diegodelacruz.springreactor.service.IDishService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.net.URI;
 
 @RestController
 @RequestMapping("/dishes")
@@ -15,33 +20,57 @@ public class DishController {
     private final IDishService service;
 
     @GetMapping
-    public Flux<Dish> findAll() {
-        return service.findAll();
+    public Mono<ResponseEntity<Flux<Dish>>> findAll() {
+        Flux<Dish> fx = service.findAll();
+        return Mono.just(ResponseEntity.ok()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(fx)
+                )
+                .defaultIfEmpty(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/{id}")
-    public Mono<Dish> findById(@PathVariable("id") String id) {
-        return service.findById(id);
+    public Mono<ResponseEntity<Dish>> findById(@PathVariable("id") String id) {
+        return service.findById(id)
+                .map(e -> ResponseEntity.ok()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(e)
+                ).defaultIfEmpty(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public Mono<Dish> save(@RequestBody Dish dish) {
-        return service.save(dish);
+    public Mono<ResponseEntity<Dish>> save(@RequestBody Dish dish, final ServerHttpRequest request) {
+        return service.save(dish)
+                .map(e -> ResponseEntity.created(URI.create(request.getURI().toString().concat("/").concat(e.getId())))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(e)
+                ).defaultIfEmpty(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}")
-    public Mono<Dish> update(@RequestBody Dish dish, @PathVariable("id") String id) {
+    public Mono<ResponseEntity<Dish>> update(@RequestBody Dish dish, @PathVariable("id") String id) {
         return Mono.just(dish)
                 .map(e -> {
                     e.setId(id);
                     return e;
                 })
-                .flatMap(e -> service.update(dish, id));
+                .flatMap(e -> service.update(dish, id))
+                .map(e -> ResponseEntity
+                        .ok()
+                        .body(e))
+                .defaultIfEmpty(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
-    public Mono<Boolean> delete(@PathVariable("id") String id) {
-        return service.delete(id);
+    public Mono<ResponseEntity<Object>> delete(@PathVariable("id") String id) {
+        return service.delete(id)
+                .flatMap(result -> {
+                    if (result) {
+                        return Mono.just(ResponseEntity.noContent().build());
+                    } else {
+                        return Mono.just(ResponseEntity.notFound().build());
+                    }
+                }).defaultIfEmpty(ResponseEntity.notFound().build());
     }
 
 }
