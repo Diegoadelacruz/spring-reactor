@@ -9,16 +9,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Service
-//@AllArgsConstructor
 @RequiredArgsConstructor
 public class DishServiceImpl implements IDishService {
 
     private final IDishRepo repo;
-
-    public DishServiceImpl(IDishRepo repo) {
-        this.repo = repo;
-    }
-
 
     @Override
     public Mono<Dish> save(Dish dish) {
@@ -27,7 +21,7 @@ public class DishServiceImpl implements IDishService {
 
     @Override
     public Mono<Dish> update(Dish dish, String id) {
-        return repo.findById(id).flatMap(repo::save);
+        return repo.findById(id).flatMap(e -> repo.save(dish));
     }
 
     @Override

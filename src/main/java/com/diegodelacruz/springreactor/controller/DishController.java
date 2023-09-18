@@ -29,9 +29,19 @@ public class DishController {
         return service.save(dish);
     }
 
-    @PostMapping("/{id}")
+    @PutMapping("/{id}")
     public Mono<Dish> update(@RequestBody Dish dish, @PathVariable("id") String id) {
-        return service.update(dish, id);
+        return Mono.just(dish)
+                .map(e -> {
+                    e.setId(id);
+                    return e;
+                })
+                .flatMap(e -> service.update(dish, id));
+    }
+
+    @DeleteMapping("/{id}")
+    public Mono<Boolean> delete(@PathVariable("id") String id) {
+        return service.delete(id);
     }
 
 }
